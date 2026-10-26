@@ -28,3 +28,12 @@ python3 scripts/p0_smoke.py
 |---|---|---|
 | Mac mini (arm64) | 상시 실행, SIEM | core, siem |
 | Windows PC (amd64) | 개발, 외부 클라이언트 | core |
+
+## 고정 버전 (P0 검증 기준, 2026-10-26)
+
+| 구성요소 | 값 |
+|---|---|
+| WAF 이미지 | owasp/modsecurity-crs:nginx@sha256:7698c48a41a43138ae317feeec964d1515b861cc1d9e50617bc1cdfe9f314e1d |
+| OWASP CRS | 4.30.0 |
+| nginx | 1.30.6 (unprivileged) |
+| 컨테이너 엔진 | OrbStack (aarch64) |
