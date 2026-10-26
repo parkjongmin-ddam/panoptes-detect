@@ -1,0 +1,18 @@
+<group name="panoptes,modsecurity,web,">
+
+  <rule id="100200" level="3">
+    <decoded_as>json</decoded_as>
+    <field name="transaction.producer.modsecurity">ModSecurity</field>
+    <description>panoptes: ModSecurity audit event</description>
+  </rule>
+
+  <rule id="100201" level="6">
+    <if_sid>100200</if_sid>
+    <regex type="pcre2">"ruleId":"942\d{3}"</regex>
+    <description>panoptes: CRS SQL injection rule matched</description>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+  </rule>
+
+</group>
