@@ -1,0 +1,40 @@
+# panoptes-detect — P0 baseline
+# profiles
+#   core : waf + backend (Mac, Windows 공통)
+#   siem : Wazuh (Mac 전용, P0 3단계에서 wazuh-docker 공식 single-node 스택을 별도로 기동)
+
+name: panoptes
+
+services:
+  backend:
+    # P0 임시 백엔드: 요청 헤더·본문을 그대로 반사. P0.5에서 신규 앱으로 교체
+    image: mendhak/http-https-echo:${ECHO_TAG:-latest}
+    profiles: ["core"]
+    environment:
+      HTTP_PORT: "8080"
+    networks: [dmz]
+    restart: unless-stopped
+
+  waf:
+    image: owasp/modsecurity-crs:${WAF_TAG:-nginx}
+    profiles: ["core"]
+    depends_on: [backend]
+    ports:
+      - "${WAF_HTTP_PORT:-8080}:8080"
+    environment:
+      BACKEND: "http://backend:8080"
+      MODSEC_RULE_ENGINE: "DetectionOnly"
+      MODSEC_AUDIT_ENGINE: "RelevantOnly"
+      MODSEC_AUDIT_LOG_FORMAT: "JSON"
+      MODSEC_AUDIT_LOG_TYPE: "Serial"
+      MODSEC_AUDIT_LOG: "/var/log/modsecurity/audit/audit.log"
+      # Paranoia Level 관련 변수는 이미지 기본값(PL1) 사용. P1 튜닝 시 README로 변수명 확인 후 지정
+    volumes:
+      - ./logs/modsec:/var/log/modsecurity/audit
+    networks: [edge, dmz]
+    restart: unless-stopped
+
+networks:
+  edge: {}
+  dmz:
+    internal: true
