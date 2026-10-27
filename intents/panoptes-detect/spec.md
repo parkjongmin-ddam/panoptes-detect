@@ -78,3 +78,12 @@ panoptes-detect/
 ## 8. 범위 밖
 - 결제, 이메일 발송, 외부 IdP 연동(필요 시 후속)
 - 운영 수준 성능·가용성
+
+## 9. 구현 메모 (P0.5 완료 시)
+- 스키마: MVP는 startup `create_all` 사용(Alembic은 스키마 변경이 생기면 도입)
+- 세션: 서버측 세션 테이블 + HttpOnly·SameSite=Lax 쿠키(세션 이벤트 로깅 용이)
+- API 키: 원문은 seed에만, DB에는 SHA-256 해시 저장
+- 로그: `request.state` 기반(Starlette BaseHTTPMiddleware는 ContextVar가 미들웨어로 전파되지 않음)
+- 시드 계정(lab 전용, 운영 금지): admin/alice/bob, 파트너 API 키 1개 — 값은 app/seed.py
+- 타임존: SQLite(테스트)는 naive 반환 → `as_aware()`로 보정, Postgres는 aware
+- 검증: pytest 10건 통과(기능·소유자 검사·잠금·API키·업로드·로그 위생·XFF)

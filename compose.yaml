@@ -1,15 +1,49 @@
-# panoptes-detect — P0 baseline
+# panoptes-detect
 # profiles
-#   core : waf + backend (Mac, Windows 공통)
-#   siem : Wazuh (Mac 전용, P0 3단계에서 wazuh-docker 공식 single-node 스택을 별도로 기동)
+#   core : waf + app + db        (보호 대상 서비스, Mac·Windows 공통)
+#   echo : P0 회귀용 echo 백엔드   (필요 시 waf BACKEND를 echo로 바꿔 사용)
+#   siem : Wazuh (Mac 전용, wazuh-docker 공식 single-node 스택을 별도로 기동)
 
 name: panoptes
 
 services:
-  backend:
-    # P0 임시 백엔드: 요청 헤더·본문을 그대로 반사. P0.5에서 신규 앱으로 교체
-    image: mendhak/http-https-echo:${ECHO_TAG:-latest}
+  db:
+    image: postgres:16-alpine
     profiles: ["core"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-panoptes}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-panoptes}
+      POSTGRES_DB: ${POSTGRES_DB:-panoptes}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-panoptes}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  app:
+    build: ./app
+    image: panoptes-app:${APP_TAG:-dev}
+    profiles: ["core"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER:-panoptes}:${POSTGRES_PASSWORD:-panoptes}@db:5432/${POSTGRES_DB:-panoptes}"
+      SESSION_SECRET: "${SESSION_SECRET:-dev-only-change-me}"
+      LOCKOUT_THRESHOLD: "${LOCKOUT_THRESHOLD:-5}"
+      LOCKOUT_MINUTES: "${LOCKOUT_MINUTES:-10}"
+      TRUST_PROXY: "true"
+    networks: [dmz, internal]
+    restart: unless-stopped
+
+  # P0 회귀 테스트용 echo 백엔드(기본 비활성). 켜려면 --profile echo
+  echo:
+    image: mendhak/http-https-echo:${ECHO_TAG:-latest}
+    profiles: ["echo"]
     environment:
       HTTP_PORT: "8080"
     networks: [dmz]
@@ -18,17 +52,18 @@ services:
   waf:
     image: owasp/modsecurity-crs:${WAF_TAG:-nginx}
     profiles: ["core"]
-    depends_on: [backend]
+    depends_on: [app]
     ports:
       - "${WAF_HTTP_PORT:-8080}:8080"
     environment:
-      BACKEND: "http://backend:8080"
+      BACKEND: "http://${WAF_BACKEND:-app}:8080"
       MODSEC_RULE_ENGINE: "DetectionOnly"
       MODSEC_AUDIT_ENGINE: "RelevantOnly"
       MODSEC_AUDIT_LOG_FORMAT: "JSON"
       MODSEC_AUDIT_LOG_TYPE: "Serial"
       MODSEC_AUDIT_LOG: "/var/log/modsecurity/audit/audit.log"
-      # Paranoia Level 관련 변수는 이미지 기본값(PL1) 사용. P1 튜닝 시 README로 변수명 확인 후 지정
+      # 앱이 원 클라이언트 IP를 X-Forwarded-For로 받도록 WAF가 헤더를 넘김(nginx 기본 포함)
+      # Paranoia Level 변수는 이미지 기본값(PL1). P1 튜닝 시 README로 변수명 확인 후 지정
     volumes:
       - ./logs/modsec:/var/log/modsecurity/audit
     networks: [edge, dmz]
@@ -38,3 +73,8 @@ networks:
   edge: {}
   dmz:
     internal: true
+  internal:
+    internal: true
+
+volumes:
+  db-data:
