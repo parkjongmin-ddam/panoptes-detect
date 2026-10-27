@@ -34,8 +34,34 @@ def client_ip(request: Request) -> str:
     return request.client.host if request.client else "-"
 
 
+# 파일 로그 핸들(지연 오픈). 쓰기 실패 시 stdout만 사용한다.
+_log_fh = None
+_log_file_ok = bool(settings.APP_LOG_FILE)
+
+
+def _file_handle():
+    global _log_fh, _log_file_ok
+    if _log_fh is None and _log_file_ok:
+        try:
+            _log_fh = open(settings.APP_LOG_FILE, "a", encoding="utf-8")
+        except OSError as e:
+            _log_file_ok = False
+            print(json.dumps({"logger": "panoptes.app", "event": "logfile.error",
+                              "detail": str(e)}, ensure_ascii=False), flush=True)
+    return _log_fh
+
+
 def _emit(record: dict) -> None:
-    print(json.dumps(record, ensure_ascii=False, separators=(",", ":")), flush=True)
+    line = json.dumps(record, ensure_ascii=False, separators=(",", ":"))
+    print(line, flush=True)
+    if _log_file_ok:
+        fh = _file_handle()
+        if fh is not None:
+            try:
+                fh.write(line + "\n")
+                fh.flush()
+            except OSError:
+                pass
 
 
 class AccessLogMiddleware(BaseHTTPMiddleware):

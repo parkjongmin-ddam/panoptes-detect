@@ -1,0 +1,73 @@
+<!-- panoptes-shop 앱 보안 이벤트 룰 (100300번대)
+     앱 로그는 flat JSON. logger=panoptes.app 로 WAF 감사 로그와 구분.
+     기본 접근 로그(100300)는 level 0이라 자체로는 알림하지 않고,
+     보안 이벤트(event 필드)에만 알림을 발생시킨다. -->
+<group name="panoptes,panoptes_app,">
+
+  <rule id="100300" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="logger">panoptes.app</field>
+    <description>panoptes-app: access log</description>
+  </rule>
+
+  <rule id="100301" level="5">
+    <if_sid>100300</if_sid>
+    <field name="event">auth.login.failure</field>
+    <description>panoptes-app: login failure (reason $(reason), user $(dstuser))</description>
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+  </rule>
+
+  <rule id="100302" level="10" frequency="8" timeframe="120">
+    <if_matched_sid>100301</if_matched_sid>
+    <same_field>client_ip</same_field>
+    <description>panoptes-app: repeated login failures from same IP (brute force / credential stuffing)</description>
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+  </rule>
+
+  <rule id="100303" level="10">
+    <if_sid>100300</if_sid>
+    <field name="event">auth.lockout</field>
+    <description>panoptes-app: account lockout (user $(dstuser))</description>
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+  </rule>
+
+  <rule id="100304" level="6">
+    <if_sid>100300</if_sid>
+    <field name="event">authz.denied</field>
+    <description>panoptes-app: authorization denied (reason $(reason), user $(dstuser))</description>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+  </rule>
+
+  <rule id="100305" level="9" frequency="6" timeframe="60">
+    <if_matched_sid>100304</if_matched_sid>
+    <same_field>client_ip</same_field>
+    <description>panoptes-app: repeated authorization failures from same IP (enumeration / IDOR probing)</description>
+    <mitre>
+      <id>T1190</id>
+    </mitre>
+  </rule>
+
+  <rule id="100306" level="5">
+    <if_sid>100300</if_sid>
+    <field name="event">apikey.invalid</field>
+    <description>panoptes-app: invalid API key (reason $(reason))</description>
+    <mitre>
+      <id>T1110</id>
+    </mitre>
+  </rule>
+
+  <rule id="100307" level="5">
+    <if_sid>100300</if_sid>
+    <field name="event">upload.rejected</field>
+    <description>panoptes-app: file upload rejected (reason $(reason))</description>
+  </rule>
+
+</group>

@@ -12,6 +12,8 @@ class Settings:
     LOCKOUT_MINUTES: int = int(os.getenv("LOCKOUT_MINUTES", "10"))
     # X-Forwarded-For를 신뢰할지 여부. WAF 뒤에 있을 때만 true.
     TRUST_PROXY: bool = os.getenv("TRUST_PROXY", "true").lower() == "true"
+    # 접근 로그를 파일로도 남길 경로(비우면 stdout만). Wazuh 수집용.
+    APP_LOG_FILE: str = os.getenv("APP_LOG_FILE", "")
     # 업로드 제한
     AVATAR_MAX_BYTES: int = int(os.getenv("AVATAR_MAX_BYTES", str(512 * 1024)))
     AVATAR_TYPES: tuple = ("image/png", "image/jpeg", "image/webp")

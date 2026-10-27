@@ -37,6 +37,9 @@ services:
       LOCKOUT_THRESHOLD: "${LOCKOUT_THRESHOLD:-5}"
       LOCKOUT_MINUTES: "${LOCKOUT_MINUTES:-10}"
       TRUST_PROXY: "true"
+      APP_LOG_FILE: "/var/log/panoptes/app.log"
+    volumes:
+      - ./logs/app:/var/log/panoptes
     networks: [dmz, internal]
     restart: unless-stopped
 
