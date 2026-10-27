@@ -1,6 +1,6 @@
 # panoptes-detect
 
-웹 서비스 앞단의 WAF와 SIEM으로 탐지 운영(Detection Operations) 흐름을 직접 구성하는 홈랩 프로젝트입니다.
+웹 서비스 앞단의 WAF와 SIEM으로 탐지 운영(Detection Operations) 흐름을 직접 구성하는 검증 프로젝트입니다.
 보호 대상 서비스부터 직접 개발하고, WAF 탐지 → 로그 수집 → 탐지 룰 → 오탐 튜닝 → 가상 패치·차단 전환까지 단계별로 실측하며 진행합니다.
 
 이름은 그리스 신화에서 모든 것을 보는 감시자 아르고스의 별칭 Panoptes에서 가져왔습니다.
@@ -109,7 +109,7 @@ Wazuh agent (Mac) ── 두 로그 수집 ──▶ Wazuh manager ─ 룰 평�
 
 - 비밀번호는 argon2, API 키는 SHA-256 해시로만 저장합니다.
 - 비밀번호·세션 값·API 키 원문은 로그에 남기지 않습니다(테스트로 확인).
-- 시드 계정과 API 키는 랩 전용 값입니다(`app/seed.py`).
+- 시드 계정과 API 키는 검증 전용 값입니다(`app/seed.py`).
 
 ## 디렉터리
 
@@ -155,9 +155,9 @@ docker exec single-node-wazuh.manager-1 /var/ossec/bin/wazuh-control restart
 | --- | --- |
 | `scripts/p0_smoke.py` | P0 베이스라인 확인(DetectionOnly 기준) |
 | `scripts/normal_traffic.py` | 정상 사용 흐름 생성, 오탐 수집·차단 모드 영향 확인 |
-| `scripts/traversal_probe.py` | `/files` 경로 탐색 가상 패치 검증(본인 랩 대상) |
+| `scripts/traversal_probe.py` | `/files` 경로 탐색 가상 패치 검증(본인 검증 환경 대상) |
 
-테스트 트래픽은 본인이 구성한 랩 환경에만 보냅니다.
+테스트 트래픽은 본인이 구성한 검증 환경에만 보냅니다.
 
 ## 설계 원칙
 
